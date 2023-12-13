@@ -26,10 +26,12 @@ pub use crate::callback::*;
 pub use crate::error::*;
 pub use crate::friends::*;
 pub use crate::input::*;
+pub use crate::inventory::*;
 pub use crate::matchmaking::*;
 pub use crate::networking::*;
 pub use crate::remote_play::*;
 pub use crate::remote_storage::*;
+pub use crate::screenshots::*;
 pub use crate::server::*;
 pub use crate::ugc::*;
 pub use crate::user::*;
@@ -41,6 +43,7 @@ mod callback;
 mod error;
 mod friends;
 mod input;
+mod inventory;
 mod matchmaking;
 mod networking;
 pub mod networking_messages;
@@ -50,6 +53,7 @@ pub mod networking_types;
 pub mod networking_utils;
 mod remote_play;
 mod remote_storage;
+mod screenshots;
 mod server;
 mod ugc;
 mod user;
@@ -266,6 +270,30 @@ impl<Manager> Client<Manager> {
         F: FnMut(C) + 'static + Send,
     {
         unsafe { register_callback(&self.inner, f) }
+    }
+
+    /// Returns an accessor to the steam screenshots interface
+    pub fn screenshots(&self) -> Screenshots<Manager> {
+        unsafe {
+            let screenshots = sys::SteamAPI_SteamScreenshots_v003();
+            debug_assert!(!screenshots.is_null());
+            Screenshots {
+                screenshots: screenshots,
+                inner: self.inner.clone(),
+            }
+        }
+    }
+
+    /// Returns an accessor to the steam inventory interface
+    pub fn inventory(&self) -> Inventory<Manager> {
+        unsafe {
+            let inventory = sys::SteamAPI_SteamInventory_v003();
+            debug_assert!(!inventory.is_null());
+            Inventory {
+                inventory: inventory,
+                inner: self.inner.clone(),
+            }
+        }
     }
 
     /// Returns an accessor to the steam utils interface

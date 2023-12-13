@@ -128,10 +128,21 @@ impl Server {
         unsafe { SteamId(sys::SteamAPI_ISteamGameServer_GetSteamID(self.server)) }
     }
 
+    /// Returns the public IP address of the server
     pub fn public_ip(&self) -> std::net::IpAddr {
         unsafe {
             let raw = sys::SteamAPI_ISteamGameServer_GetPublicIP(self.server);
-            std::net::Ipv4Addr::from_bits(raw)
+            match raw.m_eType {
+                sys::ESteamIPType::k_ESteamIPTypeIPv4 => {
+                    let ip = raw.__bindgen_anon_1.m_unIPv4;
+                    std::net::Ipv4Addr::from(ip).into()
+                }
+                sys::ESteamIPType::k_ESteamIPTypeIPv6 => {
+                    let ip = raw.__bindgen_anon_1.m_rgubIPv6;
+                    std::net::Ipv6Addr::from(ip).into()
+                }
+                unknown => panic!("unknown ip type: {:?}", unknown),
+            }
         }
     }
 
@@ -152,7 +163,7 @@ impl Server {
     ) -> (AuthTicket, Vec<u8>) {
         self.authentication_session_ticket(NetworkingIdentity::new_steam_id(steam_id))
     }
-    
+
     pub fn authentication_session_ticket(
         &self,
         network_identity: NetworkingIdentity,
@@ -273,6 +284,7 @@ impl Server {
         }
     }
 
+    /// Log off the server from steam
     pub fn log_off(&self) {
         unsafe {
             sys::SteamAPI_ISteamGameServer_LogOff(self.server);
@@ -330,15 +342,21 @@ impl Server {
         }
     }
 
+    /// Clears all key values stored for the server
     pub fn clear_all_key_values(&self) {
         unsafe {
             sys::SteamAPI_ISteamGameServer_ClearAllKeyValues(self.server);
         }
     }
-    
+
+    /// Sets a key value for the server
     pub fn set_key_value(&self, key: &str, value: &str) {
         unsafe {
-            sys::SteamAPI_ISteamGameServer_SetKeyValue(self.server, key.as_ptr() as *const _, value.as_ptr() as *const _);
+            sys::SteamAPI_ISteamGameServer_SetKeyValue(
+                self.server,
+                key.as_ptr() as *const _,
+                value.as_ptr() as *const _,
+            );
         }
     }
 
