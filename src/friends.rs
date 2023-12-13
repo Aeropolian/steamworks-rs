@@ -335,6 +335,18 @@ impl<Manager> Friend<Manager> {
         }
     }
 
+    pub fn rich_presence(&self, key: &str) -> Option<String> {
+        unsafe {
+            let value = sys::SteamAPI_ISteamFriends_GetFriendRichPresence(self.friends, self.id.0, key.as_ptr() as *const _);
+            let value = CStr::from_ptr(value);
+            if value.is_empty() {
+                None
+            } else {
+                Some(name.to_string_lossy().into_owned())
+            }
+        }
+    }
+
     pub fn state(&self) -> FriendState {
         unsafe {
             let state = sys::SteamAPI_ISteamFriends_GetFriendPersonaState(self.friends, self.id.0);
