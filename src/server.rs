@@ -128,6 +128,13 @@ impl Server {
         unsafe { SteamId(sys::SteamAPI_ISteamGameServer_GetSteamID(self.server)) }
     }
 
+    pub fn public_ip(&self) -> std::net::IpAddr {
+        unsafe {
+            let raw = sys::SteamAPI_ISteamGameServer_GetPublicIP(self.server);
+            std::net::Ipv4Addr::from_bits(raw)
+        }
+    }
+
     /// Retrieve an authentication session ticket that can be sent
     /// to an entity that wishes to verify you.
     ///
@@ -145,6 +152,7 @@ impl Server {
     ) -> (AuthTicket, Vec<u8>) {
         self.authentication_session_ticket(NetworkingIdentity::new_steam_id(steam_id))
     }
+    
     pub fn authentication_session_ticket(
         &self,
         network_identity: NetworkingIdentity,
@@ -265,6 +273,12 @@ impl Server {
         }
     }
 
+    pub fn log_off(&self) {
+        unsafe {
+            sys::SteamAPI_ISteamGameServer_LogOff(self.server);
+        }
+    }
+
     /// If active, updates the master server with this server's presence so players can find it via
     /// the steam matchmaking/server browser interfaces.
     pub fn enable_heartbeats(&self, active: bool) {
@@ -304,6 +318,27 @@ impl Server {
     pub fn set_max_players(&self, count: i32) {
         unsafe {
             sys::SteamAPI_ISteamGameServer_SetMaxPlayerCount(self.server, count);
+        }
+    }
+
+    /// Sets if the server is password protected.
+    ///
+    /// The password itself is not managed by Steam.
+    pub fn set_password_protected(&self, active: bool) {
+        unsafe {
+            sys::SteamAPI_ISteamGameServer_SetPasswordProtected(self.server, active);
+        }
+    }
+
+    pub fn clear_all_key_values(&self) {
+        unsafe {
+            sys::SteamAPI_ISteamGameServer_ClearAllKeyValues(self.server);
+        }
+    }
+    
+    pub fn set_key_value(&self, key: &str, value: &str) {
+        unsafe {
+            sys::SteamAPI_ISteamGameServer_SetKeyValue(self.server, key.as_ptr() as *const _, value.as_ptr() as *const _);
         }
     }
 
