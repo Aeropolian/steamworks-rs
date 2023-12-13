@@ -349,7 +349,7 @@ impl<Manager> Friend<Manager> {
 
     pub fn rich_presence_by_index(&self, index: i32) -> Option<String> {
         unsafe {
-            let value = sys::SteamAPI_ISteamFriends_GetFriendRichPresenceKeyByIndex(self.friends, self.id.0, index);
+            let value = sys::SteamAPI_ISteamFriends_GetFriendRichPresenceKeyByIndex(self.friends, self.id.0, index as std::ffi::c_int);
             let value = CStr::from_ptr(value);
             if value.is_empty() {
                 None
@@ -360,7 +360,7 @@ impl<Manager> Friend<Manager> {
     }
 
     pub fn rich_presence_count(&self) -> i32 {
-        unsafe { sys::SteamApi_ISteamFriends_GetFriendRichPresenceKeyCount(self.friends, self.id.0) }
+        unsafe { sys::SteamAPI_ISteamFriends_GetFriendRichPresenceKeyCount(self.friends, self.id.0) as i32 }
     }
 
     pub fn state(&self) -> FriendState {
