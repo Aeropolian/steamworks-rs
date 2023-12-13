@@ -342,7 +342,7 @@ impl<Manager> Friend<Manager> {
             if value.is_empty() {
                 None
             } else {
-                Some(name.to_string_lossy().into_owned())
+                Some(value.to_string_lossy().into_owned())
             }
         }
     }
