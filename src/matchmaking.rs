@@ -261,7 +261,12 @@ impl<Manager> Matchmaking<Manager> {
 
     pub fn lobby_member_data(&self, lobby: LobbyId, user: SteamId, key: &str) -> Option<String> {
         unsafe {
-            let data = sys::SteamAPI_ISteamMatchmaking_GetLobbyMemberData(self.mm, lobby.0, user.0, key.as_ptr() as *const _);
+            let data = sys::SteamAPI_ISteamMatchmaking_GetLobbyMemberData(
+                self.mm,
+                lobby.0,
+                user.0,
+                key.as_ptr() as *const _,
+            );
             let data = CStr::from_ptr(data);
             if data.is_empty() {
                 None
@@ -274,9 +279,14 @@ impl<Manager> Matchmaking<Manager> {
     pub fn set_lobby_member_data(&self, lobby: LobbyId, key: &str, value: &str) {
         let key = CString::new(key).unwrap();
         let value = CString::new(value).unwrap();
-        
+
         unsafe {
-            sys::SteamAPI_ISteamMatchmaking_SetLobbyMemberData(self.mm, lobby.0, key.as_ptr(), value.as_ptr());
+            sys::SteamAPI_ISteamMatchmaking_SetLobbyMemberData(
+                self.mm,
+                lobby.0,
+                key.as_ptr(),
+                value.as_ptr(),
+            );
         }
     }
 

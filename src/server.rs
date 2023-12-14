@@ -365,13 +365,19 @@ impl Server {
 
     /// Sets a key value for the server
     pub fn set_key_value(&self, key: &str, value: &str) {
+        let key = CString::new(key).unwrap();
+        let value = CString::new(value).unwrap();
         unsafe {
-            sys::SteamAPI_ISteamGameServer_SetKeyValue(
-                self.server,
-                key.as_ptr() as *const _,
-                value.as_ptr() as *const _,
-            );
+            sys::SteamAPI_ISteamGameServer_SetKeyValue(self.server, key.as_ptr(), value.as_ptr());
         }
+    }
+
+    /// Sets the tags for the server to be reported in the server browser, do not update unless
+    /// these have actually changed.
+    pub fn set_tags(&self, tags: &str) {
+        assert!(tags.len() <= 2048, "Tags are limited to 2048 characters");
+        let tags = CString::new(tags).unwrap();
+        unsafe { sys::SteamAPI_ISteamGameServer_SetGameTags(self.server, tags.as_ptr()) }
     }
 
     /// Returns an accessor to the steam UGC interface (steam workshop)
@@ -408,7 +414,6 @@ impl Server {
 fn test() {
     let (server, single) = Server::init(
         [127, 0, 0, 1].into(),
-        23333,
         23334,
         23335,
         ServerMode::Authentication,
