@@ -161,7 +161,9 @@ impl Client<ClientManager> {
         static_assert_sync::<Client<ClientManager>>();
         static_assert_send::<SingleClient<ClientManager>>();
         unsafe {
-            if !sys::SteamAPI_Init() {
+            let error =
+                sys::SteamInternal_SteamAPI_Init(std::ptr::null_mut(), std::ptr::null_mut());
+            if error != sys::ESteamAPIInitResult::k_ESteamAPIInitResult_OK {
                 return Err(SteamError::InitFailed);
             }
             sys::SteamAPI_ManualDispatch_Init();
@@ -395,7 +397,7 @@ impl<Manager> Client<Manager> {
     /// Returns an accessor to the steam remote play interface
     pub fn remote_play(&self) -> RemotePlay<Manager> {
         unsafe {
-            let rp = sys::SteamAPI_SteamRemotePlay_v001();
+            let rp = sys::SteamAPI_SteamRemotePlay_v002();
             debug_assert!(!rp.is_null());
             RemotePlay {
                 rp,
@@ -422,7 +424,7 @@ impl<Manager> Client<Manager> {
     /// Returns an accessor to the steam UGC interface (steam workshop)
     pub fn ugc(&self) -> UGC<Manager> {
         unsafe {
-            let ugc = sys::SteamAPI_SteamUGC_v016();
+            let ugc = sys::SteamAPI_SteamUGC_v018();
             debug_assert!(!ugc.is_null());
             UGC {
                 ugc,

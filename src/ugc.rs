@@ -769,7 +769,8 @@ impl<Manager> UpdateHandle<Manager> {
             assert!(sys::SteamAPI_ISteamUGC_SetItemTags(
                 self.ugc,
                 self.handle,
-                &tags.as_raw()
+                &tags.as_raw(),
+                false,
             ));
         }
         self
@@ -1053,7 +1054,7 @@ impl<Manager> UserListQuery<Manager> {
                 api_call,
                 CALLBACK_BASE_ID + 1,
                 move |v, io_error| {
-                    let ugc = sys::SteamAPI_SteamUGC_v016();
+                    let ugc = sys::SteamAPI_SteamUGC_v018();
                     if io_error {
                         sys::SteamAPI_ISteamUGC_ReleaseQueryUGCRequest(ugc, handle);
                         cb(Err(SteamError::IOFailure));
@@ -1237,7 +1238,7 @@ impl<Manager> ItemListDetailsQuery<Manager> {
                 api_call,
                 CALLBACK_BASE_ID + 1,
                 move |v, io_error| {
-                    let ugc = sys::SteamAPI_SteamUGC_v016();
+                    let ugc = sys::SteamAPI_SteamUGC_v018();
                     if io_error {
                         sys::SteamAPI_ISteamUGC_ReleaseQueryUGCRequest(ugc, handle);
                         cb(Err(SteamError::IOFailure));
@@ -1385,7 +1386,7 @@ impl<Manager> ItemDetailsQuery<Manager> {
                 api_call,
                 CALLBACK_BASE_ID + 1,
                 move |v, io_error| {
-                    let ugc = sys::SteamAPI_SteamUGC_v016();
+                    let ugc = sys::SteamAPI_SteamUGC_v018();
                     if io_error {
                         sys::SteamAPI_ISteamUGC_ReleaseQueryUGCRequest(ugc, handle);
                         cb(Err(SteamError::IOFailure));

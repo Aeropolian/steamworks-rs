@@ -57,7 +57,6 @@ impl Server {
     /// * The app ID isn't completely set up.
     pub fn init(
         ip: Ipv4Addr,
-        steam_port: u16,
         game_port: u16,
         query_port: u16,
         server_mode: ServerMode,
@@ -73,14 +72,18 @@ impl Server {
                     sys::EServerMode::eServerModeAuthenticationAndSecure
                 }
             };
-            if !sys::SteamInternal_GameServer_Init(
+
+            let error = sys::SteamInternal_GameServer_Init_V2(
                 raw_ip,
-                steam_port,
                 game_port,
                 query_port,
                 server_mode,
                 version.as_ptr(),
-            ) {
+                std::ptr::null_mut(),
+                std::ptr::null_mut(),
+            );
+
+            if error != sys::ESteamAPIInitResult::k_ESteamAPIInitResult_OK {
                 return Err(SteamError::InitFailed);
             }
             sys::SteamAPI_ManualDispatch_Init();
@@ -376,7 +379,7 @@ impl Server {
     /// **For this to work properly, you need to call `UGC::init_for_game_server()`!**
     pub fn ugc(&self) -> UGC<ServerManager> {
         unsafe {
-            let ugc = sys::SteamAPI_SteamGameServerUGC_v017();
+            let ugc = sys::SteamAPI_SteamGameServerUGC_v018();
             debug_assert!(!ugc.is_null());
             UGC {
                 ugc,
