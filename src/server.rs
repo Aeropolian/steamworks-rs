@@ -1,5 +1,5 @@
 use super::*;
-use crate::networking_types::NetworkingIdentity;
+use crate::{networking_sockets::NetworkingSockets, networking_types::NetworkingIdentity};
 #[cfg(test)]
 use serial_test::serial;
 use std::net::Ipv4Addr;
@@ -107,6 +107,17 @@ impl Server {
                     _not_sync: PhantomData,
                 },
             ))
+        }
+    }
+
+    /// Returns the networking sockets interface for the server
+    pub fn networking_sockets(&self) -> NetworkingSockets<ServerManager> {
+        unsafe {
+            let sockets = sys::SteamAPI_SteamGameServerNetworkingSockets_SteamAPI_v012();
+            NetworkingSockets {
+                sockets: sockets,
+                inner: self.inner.clone(),
+            }
         }
     }
 
