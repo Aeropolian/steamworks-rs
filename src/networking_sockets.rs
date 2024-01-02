@@ -7,15 +7,15 @@ use crate::{
     },
     SteamError,
 };
-use crate::{CallbackHandle, Inner, SResult};
+use crate::{Callback, CallbackHandle, Inner, SResult};
 #[cfg(test)]
 use serial_test::serial;
 use std::convert::TryInto;
 use std::ffi::CString;
-use std::net::SocketAddr;
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::sync::mpsc::Receiver;
 use std::sync::Arc;
-use sys::SteamNetworkingMessage_t;
+use sys::{EResult, SteamNetworkingFakeIPResult_t, SteamNetworkingMessage_t};
 
 use steamworks_sys as sys;
 
@@ -191,6 +191,36 @@ impl<Manager: 'static> NetworkingSockets<Manager> {
                 self.sockets,
                 self.inner.clone(),
             ))
+        }
+    }
+
+    pub fn request_fake_ip(&self, number_of_ports: i32) -> bool {
+        unsafe {
+            sys::SteamAPI_ISteamNetworkingSockets_BeginAsyncRequestFakeIP(
+                self.sockets,
+                number_of_ports,
+            )
+        }
+    }
+
+    /// Try to get the request fake ip result.
+    ///
+    /// # Note
+    /// `request_fake_ip` should be called before this.
+    pub fn try_fake_ip(&self) -> Result<Ipv4Addr, SteamError> {
+        unsafe {
+            let mut result: InnerFakeIPResult = std::mem::MaybeUninit::zeroed().assume_init();
+            sys::SteamAPI_ISteamNetworkingSockets_GetFakeIP(
+                self.sockets,
+                0,
+                &mut result as *mut _ as *mut _,
+            );
+
+            if result.result == EResult::k_EResultOK {
+                Ok(Ipv4Addr::from(result.ip))
+            } else {
+                Err(result.result.into())
+            }
         }
     }
 
@@ -1015,6 +1045,44 @@ impl<Manager> Drop for NetPollGroup<Manager> {
 #[derive(Debug, Error)]
 #[error("operation was unsuccessful an invalid handle was returned")]
 pub struct InvalidHandle;
+
+/// The actual struct `SteamNetworkingFakeIPResult_t` is missing its fields. These values are derived from the `Facepunch.Steamworks` implementation for C#.
+#[repr(C, packed)]
+struct InnerFakeIPResult {
+    result: sys::EResult,
+    identity: sys::SteamNetworkingIdentity,
+    ip: u32,
+    ports: [u16; 4],
+}
+
+#[derive(Debug, Clone)]
+pub struct FakeIPResult {
+    pub result: Result<(), SteamError>,
+    pub identity: NetworkingIdentity,
+    pub ip: Ipv4Addr,
+    pub ports: [u16; 4],
+}
+
+unsafe impl Callback for FakeIPResult {
+    const ID: i32 = 1223;
+    const SIZE: i32 = std::mem::size_of::<FakeIPResult>() as i32;
+
+    unsafe fn from_raw(raw: *mut std::ffi::c_void) -> Self {
+        let raw = raw as *mut InnerFakeIPResult;
+        let raw = raw.as_ref().unwrap();
+
+        FakeIPResult {
+            result: if raw.result == EResult::k_EResultOK {
+                Ok(())
+            } else {
+                Err(raw.result.into())
+            },
+            identity: raw.identity.into(),
+            ip: raw.ip.into(),
+            ports: raw.ports,
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {
