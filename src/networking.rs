@@ -3,6 +3,8 @@
 //! In the future you should use [`networking_sockets`][../networking_sockets], but for now the wrapper for the new API
 //! is still unfinished.
 
+use sys::EChatEntryType;
+
 use super::*;
 
 /// Access to the steam networking interface

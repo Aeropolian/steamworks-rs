@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{fmt::Display, mem};
 
 use super::*;
 #[cfg(test)]
@@ -342,6 +342,34 @@ impl<Manager> Matchmaking<Manager> {
             false => Err(SteamError::IOFailure),
         }
     }
+
+    pub fn get_lobby_chat_message(
+        &self,
+        lobby: LobbyId,
+        chat_id: u32,
+    ) -> Option<(SteamId, String)> {
+        unsafe {
+            let mut user_id = mem::MaybeUninit::zeroed();
+            let mut data = vec![0; 4096];
+            let size = sys::SteamAPI_ISteamMatchmaking_GetLobbyChatEntry(
+                self.mm,
+                lobby.0,
+                chat_id as i32,
+                &mut user_id as *mut _ as *mut _,
+                data.as_mut_ptr() as *mut _,
+                data.len() as i32,
+                std::ptr::null_mut(),
+            );
+
+            if size == 0 {
+                None
+            } else {
+                let data = String::from_utf8_lossy(&data[..size as usize]);
+                Some((SteamId(user_id.assume_init()), data.to_string()))
+            }
+        }
+    }
+
     /// Adds a string comparison filter to the lobby list request.
     ///
     /// This method adds a filter that compares a specific string attribute in lobbies
@@ -894,6 +922,82 @@ unsafe impl Callback for LobbyChatUpdate {
             },
         }
     }
+}
+
+#[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct LobbyChatMsg {
+    pub lobby: LobbyId,
+    pub user: SteamId,
+    pub entry_type: ChatEntryType,
+    pub chat_id: u32,
+}
+
+unsafe impl Callback for LobbyChatMsg {
+    const ID: i32 = 507;
+    const SIZE: i32 = ::std::mem::size_of::<sys::LobbyChatMsg_t>() as i32;
+
+    unsafe fn from_raw(raw: *mut c_void) -> Self {
+        let val = &mut *(raw as *mut sys::LobbyChatMsg_t);
+
+        LobbyChatMsg {
+            lobby: LobbyId(val.m_ulSteamIDLobby),
+            user: SteamId(val.m_ulSteamIDUser),
+            entry_type: match val.m_eChatEntryType {
+                x if x == sys::EChatEntryType::k_EChatEntryTypeInvalid as u8 => {
+                    ChatEntryType::Invalid
+                }
+                x if x == sys::EChatEntryType::k_EChatEntryTypeChatMsg as u8 => ChatEntryType::Chat,
+                x if x == sys::EChatEntryType::k_EChatEntryTypeTyping as u8 => {
+                    ChatEntryType::Typing
+                }
+                x if x == sys::EChatEntryType::k_EChatEntryTypeInviteGame as u8 => {
+                    ChatEntryType::InviteGame
+                }
+                x if x == sys::EChatEntryType::k_EChatEntryTypeEmote as u8 => ChatEntryType::Emote,
+                x if x == sys::EChatEntryType::k_EChatEntryTypeLeftConversation as u8 => {
+                    ChatEntryType::LeftConversation
+                }
+                x if x == sys::EChatEntryType::k_EChatEntryTypeEntered as u8 => {
+                    ChatEntryType::Entered
+                }
+                x if x == sys::EChatEntryType::k_EChatEntryTypeWasKicked as u8 => {
+                    ChatEntryType::WasKicked
+                }
+                x if x == sys::EChatEntryType::k_EChatEntryTypeWasBanned as u8 => {
+                    ChatEntryType::WasBanned
+                }
+                x if x == sys::EChatEntryType::k_EChatEntryTypeDisconnected as u8 => {
+                    ChatEntryType::Disconnected
+                }
+                x if x == sys::EChatEntryType::k_EChatEntryTypeHistoricalChat as u8 => {
+                    ChatEntryType::HistoricalChat
+                }
+                x if x == sys::EChatEntryType::k_EChatEntryTypeLinkBlocked as u8 => {
+                    ChatEntryType::LinkBlocked
+                }
+                _ => unreachable!(),
+            },
+            chat_id: val.m_iChatID,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Copy, Hash, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub enum ChatEntryType {
+    Invalid = 0,
+    Chat = 1,
+    Typing = 2,
+    InviteGame = 3,
+    Emote = 4,
+    LeftConversation = 6,
+    Entered = 7,
+    WasKicked = 8,
+    WasBanned = 9,
+    Disconnected = 10,
+    HistoricalChat = 11,
+    LinkBlocked = 14,
 }
 
 #[derive(Clone, Debug)]
