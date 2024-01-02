@@ -1047,7 +1047,7 @@ impl<Manager> Drop for NetPollGroup<Manager> {
 pub struct InvalidHandle;
 
 /// The actual struct `SteamNetworkingFakeIPResult_t` is missing its fields. These values are derived from the `Facepunch.Steamworks` implementation for C#.
-#[repr(C, packed)]
+#[repr(C)]
 struct InnerFakeIPResult {
     result: sys::EResult,
     identity: sys::SteamNetworkingIdentity,
