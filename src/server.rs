@@ -36,6 +36,44 @@ pub enum ServerMode {
 }
 
 impl Server {
+    fn steam_game_server_init_ex(
+        un_ip: std::ffi::c_uint,
+        us_game_port: std::ffi::c_ushort,
+        us_query_port: std::ffi::c_ushort,
+        e_server_mode: EServerMode,
+        pch_version_string: *const c_char,
+        p_out_err_msg: *mut SteamErrMsg,
+    ) -> ESteamAPIInitResult {
+        let versions: Vec<&[u8]> = vec![
+            sys::STEAMUTILS_INTERFACE_VERSION,
+            sys::STEAMNETWORKINGUTILS_INTERFACE_VERSION,
+            sys::STEAMGAMESERVER_INTERFACE_VERSION,
+            sys::STEAMGAMESERVERSTATS_INTERFACE_VERSION,
+            sys::STEAMHTTP_INTERFACE_VERSION,
+            sys::STEAMINVENTORY_INTERFACE_VERSION,
+            sys::STEAMNETWORKING_INTERFACE_VERSION,
+            sys::STEAMNETWORKINGMESSAGES_INTERFACE_VERSION,
+            sys::STEAMNETWORKINGSOCKETS_INTERFACE_VERSION,
+            sys::STEAMUGC_INTERFACE_VERSION,
+            b"\0",
+        ];
+
+        let merged_versions: Vec<u8> = versions.into_iter().flatten().cloned().collect();
+        let merged_versions_ptr = merged_versions.as_ptr() as *const ::std::os::raw::c_char;
+
+        return unsafe {
+            sys::SteamInternal_GameServer_Init_V2(
+                un_ip,
+                us_game_port,
+                us_query_port,
+                e_server_mode,
+                pch_version_string,
+                merged_versions_ptr,
+                p_out_err_msg,
+            )
+        };
+    }
+
     /// Attempts to initialize the steamworks api and returns
     /// a server to access the rest of the api.
     ///
@@ -61,9 +99,12 @@ impl Server {
         query_port: u16,
         server_mode: ServerMode,
         version: &str,
-    ) -> SResult<(Server, SingleClient<ServerManager>)> {
+    ) -> SIResult<(Server, SingleClient<ServerManager>)> {
         unsafe {
             let version = CString::new(version).unwrap();
+
+            // let internal_check_interface_versions =
+
             let raw_ip: u32 = ip.into();
             let server_mode = match server_mode {
                 ServerMode::NoAuthentication => sys::EServerMode::eServerModeNoAuthentication,
@@ -73,19 +114,20 @@ impl Server {
                 }
             };
 
-            let error = sys::SteamInternal_GameServer_Init_V2(
+            let mut err_msg: sys::SteamErrMsg = [0; 1024];
+            let result = Self::steam_game_server_init_ex(
                 raw_ip,
                 game_port,
                 query_port,
                 server_mode,
                 version.as_ptr(),
-                std::ptr::null_mut(),
-                std::ptr::null_mut(),
+                &mut err_msg,
             );
 
-            if error != sys::ESteamAPIInitResult::k_ESteamAPIInitResult_OK {
-                return Err(SteamError::InitFailed);
+            if result != sys::ESteamAPIInitResult::k_ESteamAPIInitResult_OK {
+                return Err(SteamAPIInitError::from_result_and_message(result, err_msg));
             }
+
             sys::SteamAPI_ManualDispatch_Init();
             let server_raw = sys::SteamAPI_SteamGameServer_v015();
             let server = Arc::new(Inner {
