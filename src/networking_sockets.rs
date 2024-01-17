@@ -12,10 +12,10 @@ use crate::{Callback, CallbackHandle, Inner, SResult};
 use serial_test::serial;
 use std::convert::TryInto;
 use std::ffi::CString;
-use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use std::net::{Ipv4Addr, SocketAddr};
 use std::sync::mpsc::Receiver;
 use std::sync::Arc;
-use sys::{EResult, SteamNetworkingFakeIPResult_t, SteamNetworkingMessage_t};
+use sys::{EResult, SteamNetworkingMessage_t};
 
 use steamworks_sys as sys;
 

@@ -307,10 +307,17 @@ impl Server {
 
     /// If active, updates the master server with this server's presence so players can find it via
     /// the steam matchmaking/server browser interfaces.
-    pub fn enable_heartbeats(&self, active: bool) {
+    pub fn set_advertise_server(&self, active: bool) {
         unsafe {
             sys::SteamAPI_ISteamGameServer_SetAdvertiseServerActive(self.server, active);
         }
+    }
+
+    /// If active, updates the master server with this server's presence so players can find it via
+    /// the steam matchmaking/server browser interfaces.
+    #[deprecated(note = "use `set_advertise_server` instead")]
+    pub fn enable_heartbeat(&self, enable: bool) {
+        self.set_advertise_server(enable);
     }
 
     /// If your game is a "mod," pass the string that identifies it.  The default is an empty
